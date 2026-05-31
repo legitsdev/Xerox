@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Абсолютный клонер сайта (Playwright Edition)
-Сохраняет статический снимок страницы или набора страниц вместе с локальными CSS/JS/шрифтами/изображениями.
+Website cloner (Playwright edition).
+Saves a static snapshot of one page or a small internal site crawl with local CSS/JS/fonts/images.
 """
 
 import argparse
@@ -117,6 +117,20 @@ BUTTON_NAV_SELECTOR = "button, [role='button'], [role='link'], [onclick], [data-
 
 SESSION = requests.Session()
 SESSION.headers.update({"User-Agent": STEALTH_USER_AGENT, "Accept-Language": ACCEPT_LANGUAGE})
+
+
+def configure_console_output():
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="backslashreplace")
+        except ValueError:
+            continue
 
 
 def parse_int(value, default=0):
@@ -1369,12 +1383,12 @@ def generate_report(url, downloaded, saved_pages, mode):
     report_lines = [
         "=== SITE CLONE REPORT (Playwright) ===",
         f"URL: {url}",
-        f"Режим: {mode}",
-        f"Дата: {time.ctime()}",
-        f"Сохранено страниц: {len(saved_pages)}",
-        f"Скачано ресурсов: {len(set(downloaded.values()))}",
+        f"Mode: {mode}",
+        f"Date: {time.ctime()}",
+        f"Saved pages: {len(saved_pages)}",
+        f"Downloaded resources: {len(set(downloaded.values()))}",
         "",
-        "--- Список сохранённых HTML-страниц ---",
+        "--- Saved HTML pages ---",
     ]
 
     for page_url, local_path in sorted(saved_pages.items()):
@@ -1382,7 +1396,7 @@ def generate_report(url, downloaded, saved_pages, mode):
 
     report_lines.extend([
         "",
-        "--- Список всех полученных файлов ---",
+        "--- Downloaded files ---",
     ])
 
     seen_pairs = set()
@@ -1745,7 +1759,7 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
             if target_url in visited_pages:
                 continue
 
-            print(f"[page] Загружаем {target_url}...", flush=True)
+            print(f"[page] Loading {target_url}...", flush=True)
             page = context.new_page()
             try:
                 page_data = capture_page_snapshot(page, target_url)
@@ -1764,7 +1778,7 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
 
             if current_page_url not in page_records:
                 page_records[current_page_url] = page_data
-                print(f"[assets] Собираем ресурсы для {current_page_url}", flush=True)
+                print(f"[assets] Collecting resources for {current_page_url}", flush=True)
                 download_assets_for_page(page_data["dom_asset_urls"], downloaded, collected_assets)
 
             if mode != "site":
@@ -1785,9 +1799,9 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
 
     site_url = page_aliases.get(root_url, root_url)
     localize_css_dependencies(downloaded, collected_assets, site_url=site_url)
-    print("[css] Локализация CSS зависимостей завершена", flush=True)
+    print("[css] CSS dependency localization complete", flush=True)
     localize_js_dependencies(downloaded, collected_assets, site_url=site_url)
-    print("[js] Локализация JS зависимостей завершена", flush=True)
+    print("[js] JS dependency localization complete", flush=True)
 
     saved_pages = {page_url: safe_html_filename(page_url) for page_url in page_records}
     for alias_url, target_page_url in page_aliases.items():
@@ -1810,28 +1824,29 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
         html_path = os.path.join(OUT_DIR, saved_pages[page_url])
         with open(html_path, "w", encoding="utf-8") as file_handle:
             file_handle.write(serialize_clean_html(soup, preserve_local_refs=is_loopback_host(page_url)))
-        print(f"[save] Сохранено {html_path}", flush=True)
+        print(f"[save] Wrote {html_path}", flush=True)
 
     entry_url = page_aliases.get(root_url, root_url)
     report_path = generate_report(entry_url, downloaded, primary_saved_pages, mode)
     summary = build_result_summary(requested_url, entry_url, mode, downloaded, primary_saved_pages, report_path)
-    print(f"Готово! Сайт сохранён в '{OUT_DIR}/', отчёт в '{report_path}'.")
+    print(f"Done. Site saved to '{OUT_DIR}/', report written to '{report_path}'.")
     return summary
 
 
 def parse_args(argv):
-    parser = argparse.ArgumentParser(description="Клонер страницы/сайта на Playwright.")
-    parser.add_argument("url", help="Стартовый URL для клонирования.")
-    parser.add_argument("--mode", choices=("page", "site"), default="page", help="page: одна страница, site: обход внутренних страниц.")
-    parser.add_argument("--max-pages", type=int, default=MAX_PAGE_COUNT, help="Максимум страниц для режима site.")
-    parser.add_argument("--button-probes", type=int, default=MAX_BUTTON_PROBES, help="Сколько навигационных кнопок проверять на каждой странице в режиме site.")
-    parser.add_argument("--output-dir", default=OUT_DIR, help="Куда сохранять локальную копию сайта.")
-    parser.add_argument("--report-file", default=REPORT_PATH, help="Куда сохранять текстовый отчёт.")
-    parser.add_argument("--json-file", default="", help="Куда сохранять JSON-сводку результата.")
+    parser = argparse.ArgumentParser(description="Clone a page or a small internal site with Playwright.")
+    parser.add_argument("url", help="Starting URL to clone.")
+    parser.add_argument("--mode", choices=("page", "site"), default="page", help="page: clone one page, site: crawl internal pages.")
+    parser.add_argument("--max-pages", type=int, default=MAX_PAGE_COUNT, help="Maximum page count for site mode.")
+    parser.add_argument("--button-probes", type=int, default=MAX_BUTTON_PROBES, help="How many navigation-like buttons to probe per page in site mode.")
+    parser.add_argument("--output-dir", default=OUT_DIR, help="Output directory for the local copy.")
+    parser.add_argument("--report-file", default=REPORT_PATH, help="Where to write the text report.")
+    parser.add_argument("--json-file", default="", help="Where to write the JSON result summary.")
     return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
+    configure_console_output()
     args = parse_args(sys.argv[1:])
     configure_runtime_paths(output_dir=args.output_dir, report_path=args.report_file)
     summary = clone_site(args.url, mode=args.mode, max_pages=max(1, args.max_pages), button_probes=max(0, args.button_probes))
