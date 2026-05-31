@@ -1,13 +1,12 @@
 # Xerox
 
-UI-first local website cloner.
-
-Runs locally. Opens a browser UI. Supports:
-- `page`
-- `crawl`
-- live logs
-- local history
-- discovered links export
+> **EN**  
+> Xerox is a UI-first local website cloner.  
+> It runs locally, opens a browser UI, supports `page` and `crawl`, shows live logs, keeps local history, and exports discovered links.
+>
+> **RU**  
+> Xerox — локальный клонер сайтов с UI-first подходом.  
+> Он запускается локально, открывает интерфейс в браузере, поддерживает режимы `page` и `crawl`, показывает live-логи, хранит локальную историю и экспортирует найденные ссылки.
 
 ![Xerox UI](docs/screenshots/xerox-ui.png)
 
