@@ -13,8 +13,42 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
+
+
+def run_regression_checks() -> None:
+    from cloner import extract_js_asset_urls, is_tracking_asset
+
+    sample_runtime = """
+    const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=[
+      "../nodes/3.Cm-Rlqsk.js",
+      "../chunks/BWGD_vIF.js",
+      "../assets/MullvadCookie.Bh6ZLlQA.css"
+    ])))=>i.map(i=>d[i]);
+    const art = "https://static.linear.app/static/grain-default.png";
+    const audio = "https://static.linear.app/assets/homepage/pulse-audio.mp3";
+    """
+    extracted = set(extract_js_asset_urls(sample_runtime))
+    expected = {
+        "../nodes/3.Cm-Rlqsk.js",
+        "../chunks/BWGD_vIF.js",
+        "../assets/MullvadCookie.Bh6ZLlQA.css",
+        "https://static.linear.app/static/grain-default.png",
+        "https://static.linear.app/assets/homepage/pulse-audio.mp3",
+    }
+    missing = sorted(expected - extracted)
+    if missing:
+        raise RuntimeError(f"Vite runtime dependency extraction missed: {missing}")
+
+    if is_tracking_asset(
+        "https://mullvad.net/_app/immutable/assets/MullvadCookie.Bh6ZLlQA.css",
+        "stylesheet",
+        "text/css",
+        107,
+    ):
+        raise RuntimeError("First-party framework CSS was incorrectly classified as tracking.")
 
 
 def read_json(url: str) -> dict:
@@ -221,6 +255,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     repo_root = Path(__file__).resolve().parent.parent
+    run_regression_checks()
     data_dir = (repo_root / args.data_dir).resolve()
     log_path = data_dir / "launcher.log"
     origin_root = data_dir / "origin"

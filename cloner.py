@@ -57,7 +57,7 @@ PAGE_URL_ATTRS = ("href", "action", "data-href", "data-url")
 TRACKING_HINTS = (
     "analytics", "tracking", "track", "telemetry", "metrics", "beacon",
     "clarity", "doubleclick", "googletagmanager", "google-analytics", "segment",
-    "hotjar", "intercom", "privacycompliance", "cookie", "consent", "sentry"
+    "hotjar", "intercom", "privacycompliance", "sentry"
 )
 SOCIAL_IMAGE_META_KEYS = {
     "og:image", "og:image:url", "twitter:image", "twitter:image:src", "msapplication-tileimage"
@@ -86,6 +86,10 @@ EXTENSION_BY_CONTENT_TYPE = {
     "video/webm": ".webm",
 }
 JS_NUMERIC_LITERAL_RE = r"\d+(?:e[+-]?\d+)?"
+JS_EMBEDDED_ASSET_EXT_RE = (
+    r"(?:m?js|css|png|jpe?g|gif|svg|webp|avif|apng|ico|woff2?|ttf|eot|otf|"
+    r"mp4|webm|mp3|wav|m4a|mov|json|webmanifest|map)"
+)
 LOCAL_HTML_TRACE_PATTERNS = (
     (re.compile(r"https?://(?:127\.0\.0\.1|localhost)(?::\d+)?"), ""),
     (re.compile(r"\b(?:127\.0\.0\.1|localhost)(?::\d+)?\b"), ""),
@@ -694,10 +698,13 @@ def rewrite_js_urls(js_text, base_url, downloaded, current_local_path, fallback_
 
 def extract_js_asset_urls(js_text):
     patterns = [
-        r'["\'](\/_next\/static\/[^"\']+\.(?:js|css))["\']',
-        r'["\'](\/static\/[^"\']+\.(?:js|css))["\']',
-        r'["\'](static\/[^"\']+\.(?:js|css))["\']',
-        r'["\'](https?:\/\/[^"\']+\.(?:js|css))["\']',
+        rf'["\'](\/_next\/static\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\'](\/static\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\'](static\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\']((?:\/_app\/immutable|_app\/immutable)\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\']((?:\.\.?\/)+(?:assets|chunks|nodes|entry|workers)\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\']((?:assets|chunks|nodes|entry|workers)\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE})["\']',
+        rf'["\'](https?:\/\/[^"\']+\.{JS_EMBEDDED_ASSET_EXT_RE}(?:\?[^"\']*)?)["\']',
     ]
     found_urls = set()
     for pattern in patterns:
@@ -1270,8 +1277,6 @@ def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None,
                 link[attr_name] = rewrite_srcset(link[attr_name], base_url, downloaded)
 
     for meta in soup.find_all("meta"):
-        if preserve_framework_markup:
-            continue
         key = (meta.get("property") or meta.get("name") or "").lower()
         if key in SOCIAL_IMAGE_META_KEYS and meta.has_attr("content"):
             abs_url = normalize_url(meta["content"], base_url)
@@ -1282,20 +1287,20 @@ def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None,
             elif abs_url:
                 meta.decompose()
 
-    if not preserve_framework_markup:
-        for style in soup.find_all("style"):
-            css_text = style.get_text()
-            if css_text:
-                style.string = rewrite_css_urls(css_text, base_url, downloaded, fallback_base_url=base_url)
+    for style in soup.find_all("style"):
+        css_text = style.get_text()
+        if css_text:
+            style.string = rewrite_css_urls(css_text, base_url, downloaded, fallback_base_url=base_url)
 
-        for tag in soup.find_all(style=True):
-            tag["style"] = rewrite_css_urls(tag["style"], base_url, downloaded, fallback_base_url=base_url)
+    for tag in soup.find_all(style=True):
+        tag["style"] = rewrite_css_urls(tag["style"], base_url, downloaded, fallback_base_url=base_url)
 
     for tag in soup.find_all(["script", "img", "source", "video", "audio", "iframe", "embed"]):
         if preserve_framework_markup:
             if tag.name == "iframe" and is_hidden_or_tracking_iframe(tag, page_host):
                 tag.decompose()
-            continue
+            elif tag.name == "script":
+                continue
         for attr_name in URL_LIKE_ATTRS:
             if not tag.has_attr(attr_name):
                 continue
