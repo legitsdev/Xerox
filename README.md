@@ -1,8 +1,12 @@
 # Xerox
 
-Xerox is a UI-first local website cloner.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-white?color=111111)](https://www.python.org/)
+[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-white?color=111111)](https://github.com/legitsdev/Xerox)
+[![License: MIT](https://img.shields.io/badge/license-MIT-white?color=111111)](LICENSE)
 
-You run one install command, one launch command, and then work from a local browser UI:
+Xerox is a UI-first local website cloner built on Playwright.
+
+One install command. One launch command. Then everything happens in the browser UI:
 - paste a URL
 - choose `page` or `crawl`
 - watch live logs
@@ -11,6 +15,15 @@ You run one install command, one launch command, and then work from a local brow
 - revisit local job history
 
 ![Xerox UI](docs/screenshots/xerox-ui.png)
+
+## Features
+
+- local web UI instead of a CLI-heavy workflow
+- two cloning modes: `page` and `crawl`
+- repo-local launcher scripts for macOS, Linux, and Windows
+- automatic Playwright Chromium setup during install
+- local history with logs, result files, and discovered links
+- preflight checks with clear recovery steps when the environment is incomplete
 
 ## Supported Setup
 
