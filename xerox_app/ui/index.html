@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="viewport-fit=cover, width=device-width, height=device-height, initial-scale=1, maximum-scale=1"
+    />
+    <meta name="application-name" content="xerox" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="color-scheme" content="only dark" />
+    <title>xerox</title>
+    <link rel="icon" href="/ui/cobalt/favicon.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/ui/cobalt/icons/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/c48d8adbec.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/2c0c9517ef.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/7c0ac64c0d.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/e64d2e981e.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/e14f8b7a65.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/850b230898.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/c6f8c596a8.css" />
+    <link rel="stylesheet" href="/ui/cobalt/assets/625e6fdd8a.css" />
+    <link rel="stylesheet" href="/ui/app.css" />
+  </head>
+  <body id="body-dark" data-theme="dark">
+    <div class="svelte-12qhfyh xerox-app" data-mobile="false" data-theme="dark" id="cobalt">
+      <div class="svelte-12qhfyh" id="content">
+        <div class="center-column-container svelte-1uha8ag xerox-page-shell" id="cobalt-save-container">
+          <main class="svelte-1uha8ag xerox-main" data-first-focus id="cobalt-save" tabindex="-1">
+            <img
+              alt="xerox mascot"
+              class="meowbalt smile svelte-bq65aw xerox-main-mascot"
+              height="152"
+              src="/ui/mascot-main.png"
+            />
+
+            <div class="svelte-1xipo2g" id="omnibox">
+              <form id="jobForm" class="xerox-form">
+                <label class="xerox-visually-hidden" for="link-area">Link input</label>
+                <div class="svelte-1xipo2g downloadable" id="input-container">
+                  <div class="svelte-1qx0atz" id="input-icons">
+                    <div class="input-icon link-icon svelte-1qx0atz">
+                      <svg
+                        class="tabler-icon tabler-icon-link"
+                        fill="none"
+                        height="24"
+                        stroke="currentColor"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        viewBox="0 0 24 24"
+                        width="24"
+                        xmlns="http://www.w3.org/2000/svg"
+                      >
+                        <path d="M9 15l6 -6"></path>
+                        <path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464"></path>
+                        <path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463"></path>
+                      </svg>
+                    </div>
+                  </div>
+                  <input
+                    aria-label="link input area"
+                    autocapitalize="off"
+                    autocomplete="off"
+                    class="svelte-1xipo2g"
+                    data-form-type="other"
+                    id="link-area"
+                    maxlength="512"
+                    placeholder="paste the link here"
+                    spellcheck="false"
+                    type="url"
+                  />
+                  <button aria-label="clear input" class="button svelte-1t798fv" id="clear-button" type="button">
+                    <svg
+                      class="tabler-icon tabler-icon-x"
+                      fill="none"
+                      height="24"
+                      stroke="currentColor"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      viewBox="0 0 24 24"
+                      width="24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path d="M18 6l-12 12"></path>
+                      <path d="M6 6l12 12"></path>
+                    </svg>
+                  </button>
+                  <button aria-label="clone" class="svelte-pnncfo" id="download-button" type="submit">
+                    <span class="svelte-pnncfo" id="download-state">&gt;&gt;</span>
+                  </button>
+                </div>
+              </form>
+
+              <div class="svelte-1xipo2g" id="action-container">
+                <div class="switcher-parent svelte-15vshmj">
+                  <div class="switcher svelte-15vshmj" id="modeStrip" role="listbox">
+                    <button aria-pressed="true" class="button active xerox-mode-button" data-mode="page" id="mode-page" type="button">
+                      <span class="xerox-mode-art xerox-mode-art-page" aria-hidden="true"></span>
+                      <span>page</span>
+                    </button>
+                    <button aria-pressed="false" class="button xerox-mode-button" data-mode="crawl" id="mode-crawl" type="button">
+                      <span class="xerox-mode-art xerox-mode-art-crawl" aria-hidden="true"></span>
+                      <span>crawl</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button id="historyToggle" class="button xerox-history-launch" type="button" aria-expanded="false" aria-controls="historyDrawer">
+                  <svg
+                    class="tabler-icon"
+                    fill="none"
+                    height="24"
+                    stroke="currentColor"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    viewBox="0 0 24 24"
+                    width="24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M3 12a9 9 0 1 0 3 -6.7"></path>
+                    <path d="M3 4v5h5"></path>
+                    <path d="M12 7v5l4 2"></path>
+                  </svg>
+                  <span>history</span>
+                  <span id="historyCount" class="xerox-history-count">0</span>
+                </button>
+              </div>
+            </div>
+          </main>
+
+          <div id="emptyState" class="xerox-idle-note">paste a URL, choose the mode, then run.</div>
+
+          <section id="jobWorkspace" class="xerox-workspace is-hidden">
+            <section class="xerox-panel xerox-log-panel">
+              <div class="xerox-panel-head xerox-panel-head-inline">
+                <h2>logs</h2>
+                <div class="xerox-actions">
+                  <button id="openSiteButton" class="button xerox-action-button" type="button">open</button>
+                  <button id="openFolderButton" class="button xerox-action-button" type="button">folder</button>
+                  <a
+                    id="foundLinksLink"
+                    class="button xerox-action-button"
+                    href="#"
+                    rel="noreferrer"
+                    download="found_links.txt"
+                  >
+                    download links
+                  </a>
+                </div>
+              </div>
+              <div id="jobSummary" class="xerox-job-summary-inline"></div>
+              <pre id="logsBox" class="xerox-code-box"></pre>
+            </section>
+          </section>
+        </div>
+      </div>
+
+      <div id="historyBackdrop" class="xerox-history-backdrop is-hidden"></div>
+      <aside id="historyDrawer" class="xerox-history-drawer" aria-hidden="true">
+        <div class="xerox-history-head">
+          <h2>history</h2>
+          <button id="historyClose" class="button xerox-history-close" type="button">close</button>
+        </div>
+
+        <div id="historyEmpty" class="xerox-history-empty is-hidden">
+          <img alt="empty history mascot" class="xerox-history-mascot" src="/ui/mascot-empty.png" />
+          <div class="xerox-history-empty-title">nothing here yet</div>
+          <p>your first completed clone will show up here.</p>
+        </div>
+
+        <div id="historyTable" class="xerox-history-table is-hidden">
+          <div class="xerox-history-table-head">
+            <span>type</span>
+            <span>url</span>
+            <span>time</span>
+          </div>
+          <div id="historyList" class="xerox-history-list"></div>
+        </div>
+      </aside>
+    </div>
+
+    <script src="/ui/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,2 @@
+import{y as f,x as u,H as _,z as o,v as t,C as g,A as i,B as l,D as d,F as p,G as v}from"../_app/immutable/chunks/B62klROV.js";function C(n,r){let s=null,y=t;var a;if(t){s=p;for(var e=v(document.head);e!==null&&(e.nodeType!==g||e.data!==n);)e=i(e);if(e===null)l(!1);else{var E=i(e);e.remove(),d(E)}}t||(a=document.head.appendChild(f()));try{u(()=>r(a),_|o)}finally{y&&(l(!0),d(s))}}export{C as h};
+//# sourceMappingURL=i9YHR0lu.js.map

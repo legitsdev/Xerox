@@ -1,0 +1,532 @@
+body,
+#body-dark {
+  background-color: #000;
+  overflow: auto;
+}
+
+#cobalt {
+  opacity: 1 !important;
+  position: relative !important;
+  display: block !important;
+  min-height: 100vh;
+  overflow: visible !important;
+}
+
+#content {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  overflow: visible;
+}
+
+.xerox-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.xerox-app {
+  min-height: 100vh;
+  position: relative;
+}
+
+.xerox-page-shell {
+  width: min(980px, calc(100vw - 28px)) !important;
+  max-width: min(980px, calc(100vw - 28px));
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 24px 0 28px;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.xerox-app.has-job .xerox-page-shell {
+  justify-content: flex-start;
+  padding-top: clamp(24px, 8vh, 88px);
+}
+
+.xerox-main {
+  width: 100%;
+  gap: 16px;
+  align-items: center;
+}
+
+#omnibox {
+  width: min(640px, 100%) !important;
+  max-width: 640px;
+}
+
+.xerox-main-mascot {
+  width: 148px;
+  height: auto;
+  opacity: 1 !important;
+}
+
+.xerox-form {
+  width: 100%;
+}
+
+#clearButton.is-hidden {
+  display: none !important;
+}
+
+#clear-button.is-hidden {
+  display: none !important;
+}
+
+.xerox-mode-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.xerox-mode-art {
+  width: 22px;
+  height: 22px;
+  display: inline-block;
+  flex: 0 0 auto;
+  background-color: currentColor;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+
+.xerox-mode-art-page {
+  -webkit-mask-image: url("/ui/icon-page-mask.png");
+  mask-image: url("/ui/icon-page-mask.png");
+}
+
+.xerox-mode-art-crawl {
+  -webkit-mask-image: url("/ui/icon-crawl-mask.png");
+  mask-image: url("/ui/icon-crawl-mask.png");
+}
+
+.xerox-history-launch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  height: 31px;
+  min-height: 31px;
+  padding: 0 13px;
+}
+
+.xerox-history-launch svg {
+  width: 20px;
+  height: 20px;
+}
+
+.xerox-history-count {
+  min-width: 19px;
+  height: 19px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--secondary);
+  color: var(--primary);
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.xerox-idle-note {
+  margin-top: 14px;
+  text-align: center;
+  color: var(--gray);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.xerox-workspace {
+  width: 100%;
+  max-width: 100%;
+  margin-top: 22px;
+  display: block;
+}
+
+.xerox-job-subtitle,
+.xerox-panel-head span,
+.xerox-history-empty p,
+.xerox-summary-card dt {
+  color: var(--gray);
+  font-size: 0.78rem;
+  line-height: 1.6;
+}
+
+.xerox-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.xerox-action-button {
+  text-decoration: none;
+}
+
+.xerox-panel {
+  border-radius: 26px;
+  border: 1px solid var(--button-stroke);
+  background: var(--button);
+  box-shadow: var(--button-box-shadow);
+}
+
+.xerox-panel {
+  padding: 14px;
+}
+
+.xerox-panel-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.xerox-panel-head-inline {
+  align-items: center;
+}
+
+.xerox-panel-head h2,
+.xerox-panel-head h3,
+.xerox-history-head h2 {
+  margin: 0;
+  font-size: 0.94rem;
+}
+
+.xerox-log-panel {
+  padding-bottom: 12px;
+}
+
+.xerox-job-summary-inline {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 10px;
+}
+
+.xerox-job-summary-url {
+  min-width: 0;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  color: var(--secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xerox-job-summary-meta {
+  color: var(--gray);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xerox-code-box {
+  margin: 0;
+  min-height: 180px;
+  max-height: 320px;
+  overflow: auto;
+  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+  padding: 14px;
+  border-radius: 18px;
+  border: 1px solid var(--content-border);
+  background: var(--primary);
+  color: var(--secondary);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.xerox-code-box::-webkit-scrollbar {
+  width: 8px;
+}
+
+.xerox-code-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.xerox-code-box::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.xerox-code-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.34);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.xerox-history-item:hover {
+  border-color: var(--input-border);
+}
+
+.xerox-history-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 29;
+}
+
+.xerox-history-drawer {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  bottom: 12px;
+  width: min(390px, calc(100vw - 24px));
+  border-radius: 30px;
+  border: 1px solid var(--popup-stroke);
+  background: var(--popup-bg);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.35);
+  padding: 18px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  transform: translateX(calc(100% + 24px));
+  transition: transform 0.18s ease;
+  z-index: 30;
+}
+
+.xerox-history-drawer.is-open {
+  transform: translateX(0);
+}
+
+.xerox-history-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+}
+
+.xerox-history-close {
+  min-height: 31px;
+  padding: 0 13px;
+}
+
+.xerox-history-empty {
+  align-self: center;
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  text-align: center;
+  padding: 20px 10px;
+}
+
+.xerox-history-empty-title {
+  font-size: 0.82rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gray);
+}
+
+.xerox-history-mascot {
+  width: 136px;
+  height: auto;
+  opacity: 1 !important;
+}
+
+.xerox-history-table {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  border-radius: 22px;
+  border: 1px solid var(--button-stroke);
+  background: var(--button);
+  overflow: hidden;
+}
+
+.xerox-history-table-head,
+.xerox-history-item {
+  display: grid;
+  grid-template-columns: 88px minmax(0, 1fr) 116px;
+  align-items: center;
+  gap: 12px;
+}
+
+.xerox-history-table-head {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--button-stroke);
+  color: var(--gray);
+  font-size: 0.68rem;
+  line-height: 1.4;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.xerox-history-list {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+}
+
+.xerox-history-item {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--button-stroke);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.xerox-history-item.active {
+  background: var(--button-elevated);
+  box-shadow: inset 0 0 0 1px var(--secondary);
+}
+
+.xerox-history-item:last-child {
+  border-bottom: 0;
+}
+
+.xerox-history-type {
+  min-width: 0;
+}
+
+.xerox-history-type-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--button-stroke);
+  background: var(--button-elevated);
+  font-size: 0.72rem;
+  line-height: 1;
+}
+
+.xerox-history-url {
+  font-size: 0.86rem;
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.xerox-history-time {
+  color: var(--gray);
+  font-size: 0.76rem;
+  line-height: 1.5;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.is-hidden {
+  display: none !important;
+}
+
+@media (max-width: 900px) {
+  .xerox-page-shell {
+    width: min(100vw - 18px, 980px);
+  }
+
+  .xerox-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+@media (max-width: 640px) {
+  .xerox-page-shell {
+    padding-top: 18px;
+    padding-bottom: 18px;
+  }
+
+  .xerox-main-mascot {
+    width: 132px;
+  }
+
+  .xerox-history-table {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .xerox-history-table-head {
+    display: none;
+  }
+
+  .xerox-history-item {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .xerox-history-url {
+    white-space: normal;
+  }
+
+  .xerox-history-time {
+    text-align: left;
+    white-space: normal;
+  }
+
+  .xerox-history-launch,
+  .xerox-action-button,
+  .xerox-history-close {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .xerox-actions {
+    width: 100%;
+  }
+
+  .xerox-job-summary-url,
+  .xerox-job-summary-meta {
+    white-space: normal;
+  }
+
+  .xerox-history-drawer {
+    padding: 14px;
+  }
+}
+
+@media (max-height: 560px) {
+  .xerox-page-shell {
+    padding-top: 12px;
+    padding-bottom: 12px;
+  }
+
+  .xerox-app.has-job .xerox-page-shell {
+    padding-top: 8px;
+  }
+
+  .xerox-main {
+    gap: 8px;
+  }
+
+  .xerox-main-mascot {
+    width: 88px;
+  }
+}
+
+@media (max-height: 320px) {
+  .xerox-main-mascot {
+    width: 60px;
+  }
+
+  .xerox-main {
+    gap: 6px;
+  }
+}

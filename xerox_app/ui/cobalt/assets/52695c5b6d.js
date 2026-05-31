@@ -1,0 +1,2 @@
+import{M as w,N as S,q as h,u as o,O,P as T,S as b}from"../_app/immutable/chunks/B62klROV.js";function n(r,s){return r===s||r?.[b]===s}function v(r={},s,i,e){var c=w.r,d=O;return S(()=>{var f,a;return h(()=>{f=a,a=[],o(()=>{r!==i(...a)&&(s(r,...a),f&&n(i(...f),r)&&s(null,...f))})}),()=>{let t=d;for(;t!==c&&t.parent!==null&&t.parent.f&T;)t=t.parent;const p=()=>{a&&n(i(...a),r)&&s(null,...a)},u=t.teardown;t.teardown=()=>{p(),u?.()}}}),r}export{v as b};
+//# sourceMappingURL=du9CgCf_.js.map

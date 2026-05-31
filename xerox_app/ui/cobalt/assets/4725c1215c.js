@@ -1,0 +1,2 @@
+import{x as v,v as o,I as y,E as f,J as l,K as m,D as p,B as i,L as T,F as A}from"../_app/immutable/chunks/B62klROV.js";import{B as E}from"../_app/immutable/chunks/BUr6unyB.js";function x(d,_,e){var s;o&&(s=A,y());var r=new E(d);v(()=>{var a=_()??null;if(o){var h=l(s),c=h===T,u=a!==null;if(c!==u){var t=m();p(t),r.anchor=t,i(!1),r.ensure(a,a&&(n=>e(n,a))),i(!0);return}}r.ensure(a,a&&(n=>e(n,a)))},f)}export{x as c};
+//# sourceMappingURL=DGn11uIJ.js.map
