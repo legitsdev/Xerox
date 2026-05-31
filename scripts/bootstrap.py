@@ -87,7 +87,14 @@ def main() -> None:
         shutil.rmtree(venv_dir, ignore_errors=True)
 
     if not venv_dir.exists():
-        run([sys.executable, "-m", "venv", str(venv_dir)], cwd=repo_root)
+        run(
+            [sys.executable, "-m", "venv", str(venv_dir)],
+            cwd=repo_root,
+            hint=(
+                "Virtual environment creation failed. Use a working Python 3.10+ interpreter with "
+                "the stdlib `venv` module enabled, then rerun the installer."
+            ),
+        )
     else:
         log(f"Reusing existing virtual environment: {venv_dir}")
 

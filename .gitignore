@@ -5,6 +5,8 @@
 .mypy_cache/
 *.egg-info/
 .tmp*/
+build/
+dist/
 
 __pycache__/
 **/__pycache__/
@@ -18,5 +20,6 @@ site_report.txt
 /cobalt-*.png
 /xerox-*.png
 /mullvad-*.png
+/linear-*.png
 
 /tmp/

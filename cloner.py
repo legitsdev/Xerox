@@ -6,6 +6,7 @@
 
 import argparse
 import hashlib
+import ipaddress
 import json
 import os
 import re
@@ -54,7 +55,7 @@ URL_LIKE_ATTRS = (
 SRCSET_ATTRS = ("srcset", "imagesrcset")
 PAGE_URL_ATTRS = ("href", "action", "data-href", "data-url")
 TRACKING_HINTS = (
-    "analytics", "tracking", "track", "telemetry", "metrics", "pixel", "beacon",
+    "analytics", "tracking", "track", "telemetry", "metrics", "beacon",
     "clarity", "doubleclick", "googletagmanager", "google-analytics", "segment",
     "hotjar", "intercom", "privacycompliance", "cookie", "consent", "sentry"
 )
@@ -166,9 +167,90 @@ def canonicalize_url(url):
     )
 
 
+def is_loopback_host(url):
+    try:
+        host = urllib.parse.urlparse(url).hostname or ""
+    except ValueError:
+        return False
+    if not host:
+        return False
+    if host.lower() == "localhost":
+        return True
+    try:
+        return ipaddress.ip_address(host).is_loopback
+    except ValueError:
+        return False
+
+
 def build_url_with_path(base_url, path):
     parsed = urllib.parse.urlparse(base_url)
     return urllib.parse.urlunparse(parsed._replace(path=path, params="", query="", fragment=""))
+
+
+def resolve_asset_candidates(raw_url, base_url, fallback_base_url=None, js_mode=False):
+    if is_skippable_url(raw_url):
+        return []
+
+    candidates = []
+    seen = set()
+
+    def push(candidate_url):
+        if not candidate_url or candidate_url in seen:
+            return
+        seen.add(candidate_url)
+        candidates.append(candidate_url)
+
+    if raw_url.startswith(("http://", "https://")):
+        push(raw_url)
+    else:
+        primary_url = resolve_js_dependency_url(raw_url, base_url) if js_mode else normalize_url(raw_url, base_url)
+        push(primary_url)
+
+    if fallback_base_url:
+        if raw_url.startswith("/"):
+            push(normalize_url(raw_url, fallback_base_url))
+        elif raw_url.startswith(("static/", "_next/", "assets/", "fonts/", "img/", "images/", "media/")):
+            push(build_url_with_path(fallback_base_url, "/" + raw_url.lstrip("/")))
+
+    return candidates
+
+
+def find_downloaded_asset_url(raw_url, base_url, downloaded, fallback_base_url=None, js_mode=False):
+    for candidate_url in resolve_asset_candidates(
+        raw_url,
+        base_url,
+        fallback_base_url=fallback_base_url,
+        js_mode=js_mode,
+    ):
+        if candidate_url in downloaded:
+            return candidate_url
+    return None
+
+
+def download_first_available_asset(
+    raw_url,
+    base_url,
+    downloaded,
+    asset_metadata,
+    fallback_base_url=None,
+    js_mode=False,
+    referer="",
+):
+    for candidate_url in resolve_asset_candidates(
+        raw_url,
+        base_url,
+        fallback_base_url=fallback_base_url,
+        js_mode=js_mode,
+    ):
+        metadata = dict(asset_metadata.get(candidate_url, {}))
+        if referer and not metadata.get("referer"):
+            metadata["referer"] = referer
+        if metadata:
+            asset_metadata[candidate_url] = metadata
+        local_path = download_file(candidate_url, downloaded, asset_metadata)
+        if local_path:
+            return candidate_url, local_path
+    return None, None
 
 
 def local_asset_ref(from_local_path, to_local_path):
@@ -307,11 +389,19 @@ def local_ref_for_url(url, downloaded, current_local_path=None, prefer_alias=Fal
 
 
 EMBEDDED_ASSET_URL_RE = re.compile(
-    r'(?P<quote>["\'])(?P<url>(?:https?://|/|\./|\.\./|static/)[^"\']+\.[A-Za-z0-9]{1,10}(?:\?[^"\']*)?)(?P=quote)'
+    r'(?P<quote>["\'])(?P<url>(?:https?://|/|\./|\.\./|static/|_next/|assets/)[^"\']+\.[A-Za-z0-9]{1,10}(?:\?[^"\']*)?)(?P=quote)'
 )
 
 
-def rewrite_embedded_asset_urls(text, base_url, downloaded, current_local_path=None, prefer_alias=False):
+def rewrite_embedded_asset_urls(
+    text,
+    base_url,
+    downloaded,
+    current_local_path=None,
+    prefer_alias=False,
+    fallback_base_url=None,
+    js_mode=False,
+):
     rewritten = text
 
     for original_url, target_local_path in downloaded.items():
@@ -327,12 +417,18 @@ def rewrite_embedded_asset_urls(text, base_url, downloaded, current_local_path=N
 
     def replace_match(match):
         raw_url = match.group("url")
-        abs_url = normalize_url(raw_url, base_url)
-        if not abs_url or abs_url not in downloaded:
+        resolved_url = find_downloaded_asset_url(
+            raw_url,
+            base_url,
+            downloaded,
+            fallback_base_url=fallback_base_url,
+            js_mode=js_mode,
+        )
+        if not resolved_url:
             return match.group(0)
 
         local_ref = local_ref_for_url(
-            abs_url,
+            resolved_url,
             downloaded,
             current_local_path=current_local_path,
             prefer_alias=prefer_alias,
@@ -352,6 +448,13 @@ def is_tracking_asset(url, resource_type="", content_type="", content_length=0):
     haystack = f"{parsed.netloc}{parsed.path}?{parsed.query}".lower()
     if resource_type in {"beacon", "ping", "cspviolationreport"}:
         return True
+    if (
+        resource_type == "image"
+        and has_known_extension(url)
+        and not parsed.query
+        and content_type != "image/gif"
+    ):
+        return False
     if any(hint in haystack for hint in TRACKING_HINTS):
         return True
     if content_type == "image/gif" and not has_known_extension(url) and parsed.query:
@@ -515,20 +618,30 @@ def extract_css_urls(css_text):
     return found_urls
 
 
-def rewrite_css_urls(css_text, base_url, downloaded, current_local_path=None):
+def rewrite_css_urls(css_text, base_url, downloaded, current_local_path=None, fallback_base_url=None):
     def replace_url(match):
         raw = match.group(1).strip().strip("'\"")
-        abs_url = normalize_url(raw, base_url)
-        if abs_url and abs_url in downloaded:
-            rewritten = local_ref_for_url(abs_url, downloaded, current_local_path=current_local_path)
+        resolved_url = find_downloaded_asset_url(
+            raw,
+            base_url,
+            downloaded,
+            fallback_base_url=fallback_base_url,
+        )
+        if resolved_url:
+            rewritten = local_ref_for_url(resolved_url, downloaded, current_local_path=current_local_path)
             return f"url({rewritten})"
         return match.group(0)
 
     def replace_import(match):
         raw = match.group(1).strip().strip("'\"")
-        abs_url = normalize_url(raw, base_url)
-        if abs_url and abs_url in downloaded:
-            rewritten = local_ref_for_url(abs_url, downloaded, current_local_path=current_local_path)
+        resolved_url = find_downloaded_asset_url(
+            raw,
+            base_url,
+            downloaded,
+            fallback_base_url=fallback_base_url,
+        )
+        if resolved_url:
+            rewritten = local_ref_for_url(resolved_url, downloaded, current_local_path=current_local_path)
             return match.group(0).replace(raw, rewritten, 1)
         return match.group(0)
 
@@ -567,13 +680,15 @@ def sync_session_from_context(context):
         )
 
 
-def rewrite_js_urls(js_text, base_url, downloaded, current_local_path):
+def rewrite_js_urls(js_text, base_url, downloaded, current_local_path, fallback_base_url=None):
     return rewrite_embedded_asset_urls(
         js_text,
         base_url,
         downloaded,
         current_local_path=current_local_path,
         prefer_alias=True,
+        fallback_base_url=fallback_base_url,
+        js_mode=True,
     )
 
 
@@ -870,7 +985,7 @@ def download_assets_for_page(dom_asset_urls, downloaded, collected_assets):
         download_file(asset_url, downloaded, collected_assets)
 
 
-def localize_css_dependencies(downloaded, asset_metadata):
+def localize_css_dependencies(downloaded, asset_metadata, site_url=None):
     pending_css_urls = [url for url, local_path in downloaded.items() if local_path.endswith(".css")]
     processed_css_urls = set()
 
@@ -891,14 +1006,24 @@ def localize_css_dependencies(downloaded, asset_metadata):
             css_text = file_handle.read()
 
         for nested_url in extract_css_urls(css_text):
-            abs_nested_url = normalize_url(nested_url, css_url)
-            if not abs_nested_url:
-                continue
-            nested_local_path = download_file(abs_nested_url, downloaded, asset_metadata)
-            if nested_local_path and nested_local_path.endswith(".css"):
-                pending_css_urls.append(abs_nested_url)
+            downloaded_url, nested_local_path = download_first_available_asset(
+                nested_url,
+                css_url,
+                downloaded,
+                asset_metadata,
+                fallback_base_url=site_url,
+                referer=css_url,
+            )
+            if downloaded_url and nested_local_path and nested_local_path.endswith(".css"):
+                pending_css_urls.append(downloaded_url)
 
-        rewritten_css = rewrite_css_urls(css_text, css_url, downloaded, current_local_path=local_path)
+        rewritten_css = rewrite_css_urls(
+            css_text,
+            css_url,
+            downloaded,
+            current_local_path=local_path,
+            fallback_base_url=site_url,
+        )
         if rewritten_css != css_text:
             with open(full_local_path, "w", encoding="utf-8") as file_handle:
                 file_handle.write(rewritten_css)
@@ -910,6 +1035,7 @@ def localize_css_dependencies(downloaded, asset_metadata):
                     css_url,
                     downloaded,
                     current_local_path=alias_local_path,
+                    fallback_base_url=site_url,
                 ),
             )
         else:
@@ -918,7 +1044,7 @@ def localize_css_dependencies(downloaded, asset_metadata):
         processed_css_urls.add(css_url)
 
 
-def localize_js_dependencies(downloaded, asset_metadata):
+def localize_js_dependencies(downloaded, asset_metadata, site_url=None):
     def js_processing_priority(url):
         lowered = url.lower()
         if "webpack" in lowered or "runtime" in lowered:
@@ -980,14 +1106,25 @@ def localize_js_dependencies(downloaded, asset_metadata):
         pending_chunk_ids.difference_update(resolved_chunk_ids)
 
         for nested_url in sorted(candidate_urls):
-            abs_nested_url = resolve_js_dependency_url(nested_url, js_url) if not nested_url.startswith("http") else nested_url
-            if not abs_nested_url:
-                continue
-            nested_local_path = download_file(abs_nested_url, downloaded, asset_metadata)
-            if nested_local_path and nested_local_path.endswith(".js"):
-                pending_js_urls.append(abs_nested_url)
+            downloaded_url, nested_local_path = download_first_available_asset(
+                nested_url,
+                js_url,
+                downloaded,
+                asset_metadata,
+                fallback_base_url=site_url,
+                js_mode=True,
+                referer=js_url,
+            )
+            if downloaded_url and nested_local_path and nested_local_path.endswith(".js"):
+                pending_js_urls.append(downloaded_url)
 
-        rewritten_js = rewrite_js_urls(js_text, js_url, downloaded, current_local_path=local_path)
+        rewritten_js = rewrite_js_urls(
+            js_text,
+            js_url,
+            downloaded,
+            current_local_path=local_path,
+            fallback_base_url=site_url,
+        )
         if rewritten_js != js_text:
             with open(full_local_path, "w", encoding="utf-8") as file_handle:
                 file_handle.write(rewritten_js)
@@ -999,6 +1136,7 @@ def localize_js_dependencies(downloaded, asset_metadata):
                     js_url,
                     downloaded,
                     current_local_path=alias_local_path,
+                    fallback_base_url=site_url,
                 ),
             )
         else:
@@ -1015,17 +1153,31 @@ def rewrite_srcset(value, base_url, downloaded):
             continue
         abs_url = normalize_url(tokens[0], base_url)
         if abs_url and abs_url in downloaded:
-            tokens[0] = downloaded[abs_url]
+            local_ref = local_ref_for_url(abs_url, downloaded, prefer_alias=True)
+            if local_ref:
+                tokens[0] = local_ref
         parts.append(" ".join(tokens))
     return ", ".join(parts)
+
+
+def is_framework_html_page(soup):
+    if soup.find(id="__next"):
+        return True
+    for tag in soup.find_all(["script", "link"]):
+        raw_value = tag.get("src") or tag.get("href") or ""
+        if "_next/" in raw_value or 'data-precedence="next"' in str(tag):
+            return True
+    return False
 
 
 def rewrite_html_page_refs(soup, base_url, saved_pages):
     if not saved_pages:
         return
 
-    for tag in soup.find_all(True):
-        for attr_name in PAGE_URL_ATTRS:
+    base_host = urllib.parse.urlparse(base_url).netloc.lower()
+
+    for tag in soup.find_all(["a", "area", "form"]):
+        for attr_name in ("href", "action"):
             if not tag.has_attr(attr_name):
                 continue
             raw_value = tag[attr_name]
@@ -1041,10 +1193,52 @@ def rewrite_html_page_refs(soup, base_url, saved_pages):
             local_path = saved_pages.get(canonical_url)
             if local_path:
                 tag[attr_name] = local_path + (f"#{parsed.fragment}" if parsed.fragment else "")
+            elif parsed.netloc.lower() == base_host:
+                tag[attr_name] = abs_url
+
+    for tag in soup.find_all(True):
+        for attr_name in ("data-href", "data-url"):
+            if not tag.has_attr(attr_name):
+                continue
+            raw_value = tag[attr_name]
+            if not isinstance(raw_value, str) or is_skippable_url(raw_value):
+                continue
+
+            abs_url = normalize_url(raw_value, base_url)
+            if not abs_url:
+                continue
+
+            parsed = urllib.parse.urlparse(abs_url)
+            canonical_url = canonicalize_url(abs_url)
+            local_path = saved_pages.get(canonical_url)
+            if local_path:
+                tag[attr_name] = local_path + (f"#{parsed.fragment}" if parsed.fragment else "")
+            elif parsed.netloc.lower() == base_host:
+                tag[attr_name] = abs_url
+
+
+def build_runtime_stabilizer_script(base_url, saved_pages):
+    return ""
 
 
 def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None, current_page_local_path=None):
+    preserve_framework_markup = is_framework_html_page(soup)
+    runtime_stabilizer = build_runtime_stabilizer_script(base_url, saved_pages or {})
+    if runtime_stabilizer:
+        head = soup.head
+        if head is None:
+            head = soup.new_tag("head")
+            if soup.html:
+                soup.html.insert(0, head)
+            else:
+                soup.insert(0, head)
+        runtime_script = soup.new_tag("script")
+        runtime_script.string = runtime_stabilizer
+        head.insert(0, runtime_script)
+
     for link in soup.find_all("link"):
+        if preserve_framework_markup:
+            continue
         href = link.get("href")
         abs_href = normalize_url(href, base_url) if href else None
         rel_values = {value.lower() for value in link.get("rel", [])}
@@ -1058,7 +1252,7 @@ def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None,
             link.decompose()
             continue
         if abs_href and abs_href in downloaded:
-            local_ref = local_ref_for_url(abs_href, downloaded)
+            local_ref = local_ref_for_url(abs_href, downloaded, prefer_alias=True)
             if local_ref:
                 link["href"] = local_ref
         elif is_asset_link and abs_href:
@@ -1076,31 +1270,38 @@ def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None,
                 link[attr_name] = rewrite_srcset(link[attr_name], base_url, downloaded)
 
     for meta in soup.find_all("meta"):
+        if preserve_framework_markup:
+            continue
         key = (meta.get("property") or meta.get("name") or "").lower()
         if key in SOCIAL_IMAGE_META_KEYS and meta.has_attr("content"):
             abs_url = normalize_url(meta["content"], base_url)
             if abs_url and abs_url in downloaded:
-                local_ref = local_ref_for_url(abs_url, downloaded)
+                local_ref = local_ref_for_url(abs_url, downloaded, prefer_alias=True)
                 if local_ref:
                     meta["content"] = local_ref
             elif abs_url:
                 meta.decompose()
 
-    for style in soup.find_all("style"):
-        css_text = style.get_text()
-        if css_text:
-            style.string = rewrite_css_urls(css_text, base_url, downloaded)
+    if not preserve_framework_markup:
+        for style in soup.find_all("style"):
+            css_text = style.get_text()
+            if css_text:
+                style.string = rewrite_css_urls(css_text, base_url, downloaded, fallback_base_url=base_url)
 
-    for tag in soup.find_all(style=True):
-        tag["style"] = rewrite_css_urls(tag["style"], base_url, downloaded)
+        for tag in soup.find_all(style=True):
+            tag["style"] = rewrite_css_urls(tag["style"], base_url, downloaded, fallback_base_url=base_url)
 
     for tag in soup.find_all(["script", "img", "source", "video", "audio", "iframe", "embed"]):
+        if preserve_framework_markup:
+            if tag.name == "iframe" and is_hidden_or_tracking_iframe(tag, page_host):
+                tag.decompose()
+            continue
         for attr_name in URL_LIKE_ATTRS:
             if not tag.has_attr(attr_name):
                 continue
             abs_url = normalize_url(tag[attr_name], base_url)
             if abs_url and abs_url in downloaded:
-                local_ref = local_ref_for_url(abs_url, downloaded)
+                local_ref = local_ref_for_url(abs_url, downloaded, prefer_alias=True)
                 if local_ref:
                     tag[attr_name] = local_ref
             elif tag.name == "script" and abs_url and is_tracking_asset(abs_url):
@@ -1116,24 +1317,26 @@ def rewrite_html_assets(soup, base_url, downloaded, page_host, saved_pages=None,
                 tag[attr_name] = rewrite_srcset(tag[attr_name], base_url, downloaded)
 
     # Inline runtime/config scripts often contain absolute asset URLs that should also be localized.
-    for script in soup.find_all("script"):
-        if script.get("src"):
-            continue
-        script_text = script.string or script.get_text()
-        if not script_text:
-            continue
-        rewritten_text = rewrite_embedded_asset_urls(
-            script_text,
-            base_url,
-            downloaded,
-            current_local_path=current_page_local_path,
-            prefer_alias=True,
-        )
-        rewritten_text = re.sub(r'"assetPrefix"\s*:\s*"https?://[^"]+"', '"assetPrefix":""', rewritten_text)
-        if rewritten_text != script_text:
-            script.string = rewritten_text
+    if not preserve_framework_markup:
+        for script in soup.find_all("script"):
+            if script.get("src"):
+                continue
+            script_text = script.string or script.get_text()
+            if not script_text:
+                continue
+            rewritten_text = rewrite_embedded_asset_urls(
+                script_text,
+                base_url,
+                downloaded,
+                current_local_path=current_page_local_path,
+                prefer_alias=True,
+                fallback_base_url=base_url,
+            )
+            rewritten_text = re.sub(r'"assetPrefix"\s*:\s*"https?://[^"]+"', '"assetPrefix":""', rewritten_text)
+            if rewritten_text != script_text:
+                script.string = rewritten_text
 
-    rewrite_html_page_refs(soup, base_url, saved_pages)
+    # Page-route rewriting is deferred to the runtime stabilizer after hydration.
 
 
 def sanitize_html_output(soup):
@@ -1149,10 +1352,11 @@ def sanitize_html_output(soup):
             meta.decompose()
 
 
-def serialize_clean_html(soup):
+def serialize_clean_html(soup, preserve_local_refs=False):
     html = str(soup)
-    for pattern, replacement in LOCAL_HTML_TRACE_PATTERNS:
-        html = pattern.sub(replacement, html)
+    if not preserve_local_refs:
+        for pattern, replacement in LOCAL_HTML_TRACE_PATTERNS:
+            html = pattern.sub(replacement, html)
     return html
 
 
@@ -1574,9 +1778,10 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
 
         browser.close()
 
-    localize_css_dependencies(downloaded, collected_assets)
+    site_url = page_aliases.get(root_url, root_url)
+    localize_css_dependencies(downloaded, collected_assets, site_url=site_url)
     print("[css] Локализация CSS зависимостей завершена", flush=True)
-    localize_js_dependencies(downloaded, collected_assets)
+    localize_js_dependencies(downloaded, collected_assets, site_url=site_url)
     print("[js] Локализация JS зависимостей завершена", flush=True)
 
     saved_pages = {page_url: safe_html_filename(page_url) for page_url in page_records}
@@ -1599,7 +1804,7 @@ window.chrome = window.chrome || { runtime: {}, app: {} };
 
         html_path = os.path.join(OUT_DIR, saved_pages[page_url])
         with open(html_path, "w", encoding="utf-8") as file_handle:
-            file_handle.write(serialize_clean_html(soup))
+            file_handle.write(serialize_clean_html(soup, preserve_local_refs=is_loopback_host(page_url)))
         print(f"[save] Сохранено {html_path}", flush=True)
 
     entry_url = page_aliases.get(root_url, root_url)

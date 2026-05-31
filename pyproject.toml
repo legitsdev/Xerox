@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "xerox"
-version = "0.1.0"
+version = "0.1.1"
 description = "Local website cloner with a minimal web UI"
 readme = "README.md"
 requires-python = ">=3.10"

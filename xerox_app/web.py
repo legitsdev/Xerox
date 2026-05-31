@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import __version__
-from .runtime import default_data_dir, open_path, repo_root
+from .runtime import PreviewServerManager, default_data_dir, open_path, open_url, repo_root
 from .state import JobManager
 
 
@@ -23,12 +23,17 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
     app = FastAPI(title="xerox", version=__version__)
     app.state.manager = manager
     app.state.data_dir = resolved_data_dir
+    app.state.preview_manager = PreviewServerManager()
 
     app.mount("/ui", StaticFiles(directory=UI_DIR), name="ui")
 
     @app.get("/")
     def index() -> FileResponse:
         return FileResponse(UI_DIR / "index.html")
+
+    @app.get("/favicon.ico")
+    def favicon() -> FileResponse:
+        return FileResponse(UI_DIR / "cobalt" / "favicon.png")
 
     @app.get("/api/meta")
     def meta() -> dict[str, Any]:
@@ -80,6 +85,23 @@ def create_app(data_dir: Path | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Job not found")
         open_path(Path(job["output_dir"]))
         return {"status": "ok"}
+
+    @app.post("/api/jobs/{job_id}/open-site")
+    def open_site(job_id: str) -> dict[str, str]:
+        job = manager.get(job_id, include_text=False)
+        entry_file = job.get("entry_file") if job else None
+        output_dir = job.get("output_dir") if job else None
+        if not job or not entry_file or not output_dir:
+            raise HTTPException(status_code=404, detail="Job entry file was not found")
+
+        preview_url = app.state.preview_manager.ensure_url(
+            Path(output_dir),
+            entry_file,
+            base_url=job.get("final_url") or job.get("requested_url"),
+            saved_pages=job.get("saved_pages") or {},
+        )
+        open_url(preview_url)
+        return {"status": "ok", "url": preview_url}
 
     @app.get("/outputs/{job_id}/{asset_path:path}")
     def output_file(job_id: str, asset_path: str) -> FileResponse:

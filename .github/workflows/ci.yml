@@ -1,0 +1,74 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Xerox (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: ./install.sh
+
+      - name: Install Xerox (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\install.ps1
+
+      - name: Launcher help (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: ./xerox --help
+
+      - name: Launcher help (Windows PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\xerox.ps1 --help
+
+      - name: Launcher help (Windows CMD)
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: xerox.bat --help
+
+      - name: API smoke test (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: ./.venv/bin/python scripts/ci_smoke.py --python ./.venv/bin/python
+
+      - name: API smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: .\.venv\Scripts\python.exe scripts\ci_smoke.py --python .\.venv\Scripts\python.exe
+
+      - name: Build package (macOS / Linux)
+        if: runner.os != 'Windows'
+        run: |
+          ./.venv/bin/python -m pip install build
+          ./.venv/bin/python -m build
+
+      - name: Build package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\python.exe -m pip install build
+          .\.venv\Scripts\python.exe -m build

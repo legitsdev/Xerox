@@ -4,6 +4,7 @@ const state = {
   activeTimer: null,
   historyTimer: null,
   historyOpen: false,
+  historyItems: [],
 };
 
 const refs = {
@@ -139,14 +140,8 @@ function renderJob(job) {
   refs.logsBox.textContent = job.logs_text || 'No logs yet.';
 
   if (job.entry_file) {
-    const entryUrl = `/outputs/${job.id}/${job.entry_file}`;
     setButtonEnabled(refs.openSiteButton, true);
-    refs.openSiteButton.onclick = () => {
-      const opened = window.open(entryUrl, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        window.location.href = entryUrl;
-      }
-    };
+    refs.openSiteButton.onclick = () => postAction(`/api/jobs/${job.id}/open-site`);
   } else {
     setButtonEnabled(refs.openSiteButton, false);
     refs.openSiteButton.onclick = null;
@@ -174,6 +169,7 @@ async function postAction(url) {
 }
 
 function renderHistory(items) {
+  state.historyItems = items;
   refs.historyCount.textContent = String(items.length);
   refs.historyList.innerHTML = '';
 
@@ -211,10 +207,21 @@ function renderHistory(items) {
 
 async function loadHistory() {
   const payload = await fetchJson('/api/history');
-  renderHistory(payload.items);
+  const items = Array.isArray(payload.items) ? payload.items : [];
+  const hadSelection = Boolean(state.selectedJobId);
+  const selectionExists = state.selectedJobId && items.some((item) => item.id === state.selectedJobId);
+  if (!selectionExists) {
+    state.selectedJobId = items[0]?.id || null;
+  }
 
-  if (!state.selectedJobId && payload.items.length) {
-    state.selectedJobId = payload.items[0].id;
+  renderHistory(items);
+
+  if (!state.selectedJobId) {
+    renderEmptySelection();
+    return;
+  }
+
+  if (!hadSelection || !selectionExists) {
     await loadSelectedJob();
   }
 }
@@ -236,7 +243,7 @@ async function loadSelectedJob() {
 
 async function selectJob(jobId) {
   state.selectedJobId = jobId;
-  await loadHistory();
+  renderHistory(state.historyItems);
   await loadSelectedJob();
 }
 
