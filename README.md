@@ -1,42 +1,15 @@
 # Xerox
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-white?color=111111)](https://www.python.org/)
-[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-white?color=111111)](https://github.com/legitsdev/Xerox)
-[![License: MIT](https://img.shields.io/badge/license-MIT-white?color=111111)](LICENSE)
+UI-first local website cloner.
 
-Xerox is a UI-first local website cloner built on Playwright.
-
-One install command. One launch command. Then everything happens in the browser UI:
-- paste a URL
-- choose `page` or `crawl`
-- watch live logs
-- open the cloned result
-- download discovered links
-- revisit local job history
+Runs locally. Opens a browser UI. Supports:
+- `page`
+- `crawl`
+- live logs
+- local history
+- discovered links export
 
 ![Xerox UI](docs/screenshots/xerox-ui.png)
-
-## Features
-
-- local web UI instead of a CLI-heavy workflow
-- two cloning modes: `page` and `crawl`
-- repo-local launcher scripts for macOS, Linux, and Windows
-- automatic Playwright Chromium setup during install
-- local history with logs, result files, and discovered links
-- preflight checks with clear recovery steps when the environment is incomplete
-
-## Supported Setup
-
-- macOS terminal
-- Linux bash
-- Windows PowerShell
-- Windows Command Prompt
-- Python `3.10+`
-
-## Modes
-
-- `page`: clone one page and the assets needed to reproduce it locally
-- `crawl`: start from one URL, follow internal navigation, and rewrite local links between saved pages
 
 ## Quick Start
 
@@ -67,29 +40,32 @@ install.bat
 xerox.bat
 ```
 
-If you prefer SSH:
+SSH:
 
 ```bash
 git clone git@github.com:legitsdev/Xerox.git
 ```
 
-## What The Installer Does
+## Modes
 
+- `page`: clone one page and the assets needed to reproduce it locally
+- `crawl`: start from one URL, follow internal navigation, and rewrite local links between saved pages
+
+## Install
+
+The installer:
 - picks a working Python `3.10+` interpreter
 - creates a repo-local `.venv`
-- upgrades `pip`
-- installs Xerox in editable mode
+- installs dependencies
 - installs Playwright Chromium
 - runs a smoke check
 
-## What The Launcher Does
-
-- starts the Xerox local web UI
+The launcher:
+- starts the local web UI
 - uses `127.0.0.1:4173` or the next free port
-- opens the dashboard in your browser automatically
 - runs from the repo-local `.venv` without manual activation
 
-## Repo Commands
+## Commands
 
 Main flow:
 
@@ -98,21 +74,19 @@ Main flow:
 ./xerox
 ```
 
-Secondary Python entrypoint:
+Secondary entrypoint:
 
 ```bash
 python -m xerox --no-open
 ```
 
-Editable install into the current environment:
+Editable install:
 
 ```bash
 pip install -e .
 ```
 
 ## Local Data
-
-Xerox stores job history and outputs in your OS user data folder.
 
 Typical locations:
 - macOS: `~/Library/Application Support/xerox`
@@ -130,17 +104,17 @@ Each job stores:
 
 ### `Python 3.10+ was not found`
 
-Install Python 3.10 or newer, then rerun the install command for your OS.
+Install Python `3.10+` and rerun the installer.
 
-On macOS/Linux, if you already know the exact interpreter path you want to use:
+If you want a specific interpreter on macOS/Linux:
 
 ```bash
 XEROX_PYTHON=/path/to/python3.12 ./install.sh
 ```
 
-### `Playwright Chromium is not installed` or browser startup fails
+### `Playwright Chromium is not installed`
 
-Rerun the installer first.
+Rerun the installer.
 
 Manual recovery:
 
@@ -148,7 +122,7 @@ Manual recovery:
 ./.venv/bin/python -m playwright install chromium
 ```
 
-On Windows:
+Windows:
 
 ```powershell
 .\.venv\Scripts\python.exe -m playwright install chromium
@@ -156,14 +130,12 @@ On Windows:
 
 ### Linux system packages
 
-Some Linux distros require extra OS libraries for Playwright.
-If the installer prints missing package errors, install the packages requested by Playwright and rerun `./install.sh`.
+If Playwright reports missing OS libraries, install the packages it requests and rerun `./install.sh`.
 
 ## Notes
 
-- Some sites use anti-bot or challenge pages. Xerox includes waits and browser fingerprint adjustments, but no site can be guaranteed.
-- Large or highly dynamic sites may still need tuning.
-- `crawl` is intentionally conservative and does not try to submit forms or authenticate.
+- Some sites use anti-bot or challenge pages. They are not guaranteed.
+- `crawl` is conservative and does not submit forms or authenticate.
 
 ## License
 
